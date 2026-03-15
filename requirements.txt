@@ -1,2 +1,5 @@
 streamlit>=1.30
+streamlit-plotly-events>=0.0.6
+streamlit-image-coordinates>=0.4.0
+plotly>=5.0
 medical-image-std

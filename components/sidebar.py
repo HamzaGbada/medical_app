@@ -43,9 +43,19 @@ def render_sidebar(img_height: int = 0, img_width: int = 0):
 
 
 def _render_roi_controls(img_h: int, img_w: int) -> dict:
-    """ROI coordinate controls using sliders for intuitive selection."""
+    """ROI coordinate controls — click on the image to set center, sliders to fine-tune."""
     default_w = min(255, img_w // 2)
     default_h = min(255, img_h // 2)
+
+    # Apply any pending click (set by the image click handler on the previous
+    # rerun) *before* the slider widgets are instantiated — Streamlit requires
+    # session_state writes to happen before the widget with that key renders.
+    pending = st.session_state.pop("_pending_roi_click", None)
+    if pending is not None:
+        st.session_state["roi_x_input"] = pending["x"]
+        st.session_state["roi_y_input"] = pending["y"]
+
+    st.sidebar.caption("Click on the image to set ROI center, or adjust sliders below.")
 
     roi_w = st.sidebar.slider("Width", 16, img_w, default_w, step=8, key="roi_w_input")
     roi_h = st.sidebar.slider("Height", 16, img_h, default_h, step=8, key="roi_h_input")

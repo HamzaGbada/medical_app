@@ -55,6 +55,30 @@ def draw_roi_rectangle(image_arr: np.ndarray, x_min: int, y_min: int,
     return rgb
 
 
+def draw_crosshair(image_arr: np.ndarray, cx: int, cy: int,
+                    color=(0, 255, 0), size: int = 15, thickness: int = 2) -> np.ndarray:
+    """Draw a crosshair marker at (cx, cy) on the image."""
+    if image_arr.ndim == 2:
+        rgb = np.stack([image_arr] * 3, axis=-1)
+    else:
+        rgb = image_arr.copy()
+    rgb = rgb.astype(np.uint8)
+    h, w = rgb.shape[:2]
+    t = thickness
+
+    # Horizontal line
+    y_lo, y_hi = max(0, cy - t // 2), min(h, cy + t // 2 + 1)
+    x_lo, x_hi = max(0, cx - size), min(w, cx + size + 1)
+    rgb[y_lo:y_hi, x_lo:x_hi] = color
+
+    # Vertical line
+    y_lo, y_hi = max(0, cy - size), min(h, cy + size + 1)
+    x_lo, x_hi = max(0, cx - t // 2), min(w, cx + t // 2 + 1)
+    rgb[y_lo:y_hi, x_lo:x_hi] = color
+
+    return rgb
+
+
 def overlay_roi_result(original_arr: np.ndarray, result_arr: np.ndarray,
                        x_min: int, y_min: int, x_max: int, y_max: int,
                        overlay_color=(255, 50, 50), alpha: float = 0.5) -> np.ndarray:

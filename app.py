@@ -27,11 +27,15 @@ from medical_image import (
     BitDepthNormAlgorithm,
 )
 
+from streamlit_image_coordinates import streamlit_image_coordinates
+
 from components.image_utils import (
     tensor_to_display,
+    numpy_to_pil,
     get_dicom_metadata,
     timed_execution,
     draw_roi_rectangle,
+    draw_crosshair,
     overlay_roi_result,
 )
 from components.sidebar import render_sidebar
@@ -179,13 +183,59 @@ if roi_config is not None:
     x_min, y_min = roi_config["x_min"], roi_config["y_min"]
     x_max, y_max = roi_config["x_max"], roi_config["y_max"]
 
-    orig_with_roi = draw_roi_rectangle(orig_display, x_min, y_min, x_max, y_max)
-
     col_orig, col_proc = st.columns(2)
 
     with col_orig:
-        st.markdown("**Original**")
-        st.image(orig_with_roi, use_container_width=True)
+        st.markdown("**Original** — click to set ROI center")
+
+        # Draw ROI rectangle + crosshair on the image for the clickable display
+        annotated = draw_roi_rectangle(orig_display, x_min, y_min, x_max, y_max)
+        roi_cx = (x_min + x_max) // 2
+        roi_cy = (y_min + y_max) // 2
+        annotated = draw_crosshair(annotated, roi_cx, roi_cy)
+        pil_img = numpy_to_pil(annotated)
+
+        # Display clickable image.  Cap the display width so large DICOM
+        # images don't overflow the column; we scale click coords back.
+        max_display_w = 800
+        if img_w > max_display_w:
+            display_w = max_display_w
+            display_h = int(img_h * max_display_w / img_w)
+        else:
+            display_w = img_w
+            display_h = img_h
+
+        coords = streamlit_image_coordinates(
+            pil_img,
+            key="roi_click",
+            width=display_w,
+            height=display_h,
+            cursor="crosshair",
+        )
+
+        # Handle click → recompute ROI center from clicked pixel coordinates.
+        # The component persists the last click, so we track the timestamp
+        # to avoid reprocessing the same click on every rerun.
+        if coords is not None:
+            click_time = coords.get("unix_time", 0)
+            last_time = st.session_state.get("_roi_last_click_time", 0)
+            if click_time != last_time:
+                st.session_state["_roi_last_click_time"] = click_time
+                # Scale from displayed size back to original image dimensions.
+                scale_x = img_w / display_w
+                scale_y = img_h / display_h
+                cx = int(coords["x"] * scale_x)
+                cy = int(coords["y"] * scale_y)
+                roi_w = roi_config["roi_w"]
+                roi_h = roi_config["roi_h"]
+                # Clamp so ROI stays within image bounds, snap to step=8
+                new_x = max(0, min(img_w - roi_w, cx - roi_w // 2))
+                new_y = max(0, min(img_h - roi_h, cy - roi_h // 2))
+                new_x = (new_x // 8) * 8
+                new_y = (new_y // 8) * 8
+                st.session_state["_pending_roi_click"] = {"x": new_x, "y": new_y}
+                st.rerun()
+
         st.caption(
             f"ROI: ({x_min}, {y_min}) to ({x_max}, {y_max})  —  "
             f"{x_max - x_min} x {y_max - y_min} px"
