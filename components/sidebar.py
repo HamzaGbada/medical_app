@@ -3,12 +3,21 @@
 import torch
 import streamlit as st
 
-
 OPERATION_CATEGORIES = {
-    "Filters": ["Gaussian Blur", "Median Filter", "Difference of Gaussians",
-                 "Laplacian of Gaussian", "Gamma Correction"],
-    "Mammography": ["Breast Mask", "Apply Breast Mask", "DICOM Window",
-                     "GRAIL Window", "Bit Depth Normalization"],
+    "Filters": [
+        "Gaussian Blur",
+        "Median Filter",
+        "Difference of Gaussians",
+        "Laplacian of Gaussian",
+        "Gamma Correction",
+    ],
+    "Mammography": [
+        "Breast Mask",
+        "Apply Breast Mask",
+        "DICOM Window",
+        "GRAIL Window",
+        "Bit Depth Normalization",
+    ],
     "Algorithms": ["Top-Hat", "K-Means", "FCM", "PFCM", "FEBDS"],
 }
 
@@ -60,10 +69,22 @@ def _render_roi_controls(img_h: int, img_w: int) -> dict:
     roi_w = st.sidebar.slider("Width", 16, img_w, default_w, step=8, key="roi_w_input")
     roi_h = st.sidebar.slider("Height", 16, img_h, default_h, step=8, key="roi_h_input")
 
-    x_min = st.sidebar.slider("X position", 0, max(0, img_w - roi_w), min(100, img_w // 4),
-                               step=8, key="roi_x_input")
-    y_min = st.sidebar.slider("Y position", 0, max(0, img_h - roi_h), min(100, img_h // 4),
-                               step=8, key="roi_y_input")
+    x_min = st.sidebar.slider(
+        "X position",
+        0,
+        max(0, img_w - roi_w),
+        min(100, img_w // 4),
+        step=8,
+        key="roi_x_input",
+    )
+    y_min = st.sidebar.slider(
+        "Y position",
+        0,
+        max(0, img_h - roi_h),
+        min(100, img_h // 4),
+        step=8,
+        key="roi_y_input",
+    )
 
     x_max = min(img_w, x_min + roi_w)
     y_max = min(img_h, y_min + roi_h)
@@ -71,10 +92,14 @@ def _render_roi_controls(img_h: int, img_w: int) -> dict:
     normalize = st.sidebar.toggle("Normalize ROI (÷ 4095)", value=True)
 
     return {
-        "x_min": x_min, "y_min": y_min,
-        "x_max": x_max, "y_max": y_max,
-        "roi_w": roi_w, "roi_h": roi_h,
-        "normalize": normalize, "normalize_divisor": 4095.0,
+        "x_min": x_min,
+        "y_min": y_min,
+        "x_max": x_max,
+        "y_max": y_max,
+        "roi_w": roi_w,
+        "roi_h": roi_h,
+        "normalize": normalize,
+        "normalize_divisor": 4095.0,
     }
 
 
@@ -101,7 +126,9 @@ def _render_params(operation: str) -> dict:
         p["auto_wl"] = st.sidebar.checkbox("Auto (from DICOM header)", value=True)
         if not p["auto_wl"]:
             p["window_center"] = st.sidebar.number_input("Window Center", value=2000.0)
-            p["window_width"] = st.sidebar.number_input("Window Width", value=3000.0, min_value=1.0)
+            p["window_width"] = st.sidebar.number_input(
+                "Window Width", value=3000.0, min_value=1.0
+            )
     elif operation == "GRAIL Window":
         p["n_scales"] = st.sidebar.slider("Gabor Scales", 1, 6, 3)
         p["n_orientations"] = st.sidebar.slider("Gabor Orientations", 2, 12, 6)
@@ -111,7 +138,9 @@ def _render_params(operation: str) -> dict:
         p["auto_bits"] = st.sidebar.checkbox("Auto-detect bit depth", value=True)
         if not p["auto_bits"]:
             p["bits_stored"] = st.sidebar.selectbox("Bits Stored", [8, 12, 16], index=1)
-        p["target_max"] = st.sidebar.number_input("Target Max", value=255.0, min_value=1.0)
+        p["target_max"] = st.sidebar.number_input(
+            "Target Max", value=255.0, min_value=1.0
+        )
     elif operation == "Top-Hat":
         p["radius"] = st.sidebar.slider("Radius", 1, 20, 4)
     elif operation == "K-Means":
@@ -129,7 +158,9 @@ def _render_params(operation: str) -> dict:
         p["eta"] = st.sidebar.slider("Typicality (eta)", 1.1, 5.0, 2.0, 0.1)
         p["a"] = st.sidebar.slider("Membership weight (a)", 0.1, 5.0, 1.0, 0.1)
         p["b"] = st.sidebar.slider("Typicality weight (b)", 0.1, 10.0, 4.0, 0.1)
-        p["tau"] = st.sidebar.number_input("Atypicality threshold (tau)", value=0.04, format="%.4f")
+        p["tau"] = st.sidebar.number_input(
+            "Atypicality threshold (tau)", value=0.04, format="%.4f"
+        )
         p["max_iter"] = st.sidebar.slider("Max Iterations", 10, 500, 100, 10)
     elif operation == "FEBDS":
         p["method"] = st.sidebar.selectbox("Enhancement Method", ["dog", "log", "fft"])
